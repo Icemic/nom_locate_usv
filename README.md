@@ -14,11 +14,11 @@ The crate provide the [`LocatedSpan` struct](https://docs.rs/nom_locate/latest/n
 
 ````rust
 extern crate nom;
-extern crate nom_locate;
+extern crate nom_locate_usv;
 
 use nom::bytes::complete::{tag, take_until};
 use nom::IResult;
-use nom_locate::{position, LocatedSpan};
+use nom_locate_usv::{position, LocatedSpan};
 
 type Span<'a> = LocatedSpan<&'a str>;
 struct Token<'a> {
@@ -49,7 +49,8 @@ fn main() {
     let position = output.unwrap().1.position;
     assert_eq!(position, unsafe {
         Span::new_from_raw_offset(
-            14, // offset
+            14, // byte offset
+            14, // char offset
             2,  // line
             "", // fragment
             (), // extra
@@ -65,11 +66,11 @@ Import [nom](https://github.com/geal/nom) and nom_locate.
 
 ````rust
 extern crate nom;
-extern crate nom_locate;
+extern crate nom_locate_usv;
 
 use nom::bytes::complete::{tag, take_until};
 use nom::IResult;
-use nom_locate::{position, LocatedSpan};
+use nom_locate_usv::{position, LocatedSpan};
 ````
 
 Also you'd probably create [type alias](https://doc.rust-lang.org/book/type-aliases.html) for convenience so you don't have to specify the `fragment` type every time:
@@ -123,7 +124,8 @@ fn main() {
     let position = output.unwrap().1.position;
     assert_eq!(position, unsafe {
         Span::new_from_raw_offset(
-            14, // offset
+            14, // byte offset
+            14, // char offset
             2,  // line
             "", // fragment
             (), // extra

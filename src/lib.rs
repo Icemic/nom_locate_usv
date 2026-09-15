@@ -13,7 +13,7 @@
 //! ```
 //! use nom::bytes::complete::{tag, take_until};
 //! use nom::IResult;
-//! use nom_locate::{position, LocatedSpan};
+//! use nom_locate_usv::{position, LocatedSpan};
 //!
 //! type Span<'a> = LocatedSpan<&'a str>;
 //!
@@ -56,7 +56,7 @@
 //! This property is not used when comparing two `LocatedSpan`s.
 //!
 //! ```ignore
-//! use nom_locate::LocatedSpan;
+//! use nom_locate_usv::LocatedSpan;
 //! type Span<'a> = LocatedSpan<&'a str, String>;
 //!
 //! let input = Span::new_extra("Lorem ipsum \n foobar", "filename");
@@ -119,6 +119,10 @@ pub struct LocatedSpan<T, X = ()> {
     /// the input of the parser. It starts at offset 0.
     offset: usize,
 
+    /// The position of the fragment in Unicode scalar values relatively to
+    /// the input of the parser. It starts at offset 0.
+    char_offset: usize,
+
     /// The line number of the fragment relatively to the input of the
     /// parser. It starts at line 1.
     line: u32,
@@ -166,15 +170,15 @@ impl<T> LocatedSpan<T, ()> {
     /// `offset` starts at 0, `line` starts at 1, and `column` starts at 1.
     ///
     /// Do not use this constructor in parser functions; `nom` and
-    /// `nom_locate` assume span offsets are relative to the beginning of the
+    /// `nom_locate_usv` assumes span offsets are relative to the beginning of the
     /// same input. In these cases, you probably want to use the
     /// `nom::traits::Slice` trait instead.
     ///
     /// # Example of use
     ///
     /// ```
-    /// # extern crate nom_locate;
-    /// use nom_locate::LocatedSpan;
+    /// # extern crate nom_locate_usv;
+    /// use nom_locate_usv::LocatedSpan;
     ///
     /// # fn main() {
     /// let span = LocatedSpan::new(b"foobar");
@@ -188,6 +192,7 @@ impl<T> LocatedSpan<T, ()> {
     pub fn new(program: T) -> LocatedSpan<T, ()> {
         LocatedSpan {
             offset: 0,
+            char_offset: 0,
             line: 1,
             fragment: program,
             extra: (),
@@ -203,15 +208,15 @@ impl<T, X> LocatedSpan<T, X> {
     /// `offset` starts at 0, `line` starts at 1, and `column` starts at 1.
     ///
     /// Do not use this constructor in parser functions; `nom` and
-    /// `nom_locate` assume span offsets are relative to the beginning of the
+    /// `nom_locate_usv` assumes span offsets are relative to the beginning of the
     /// same input. In these cases, you probably want to use the
     /// `nom::traits::Slice` trait instead.
     ///
     /// # Example of use
     ///
     /// ```
-    /// # extern crate nom_locate;
-    /// use nom_locate::LocatedSpan;
+    /// # extern crate nom_locate_usv;
+    /// use nom_locate_usv::LocatedSpan;
     ///
     /// # fn main() {
     /// let span = LocatedSpan::new_extra(b"foobar", "extra");
@@ -226,24 +231,27 @@ impl<T, X> LocatedSpan<T, X> {
     pub fn new_extra(program: T, extra: X) -> LocatedSpan<T, X> {
         LocatedSpan {
             offset: 0,
+            char_offset: 0,
             line: 1,
             fragment: program,
             extra: extra,
         }
     }
 
-    /// Similar to `new_extra`, but allows overriding offset and line.
-    /// This is unsafe, because giving an offset too large may result in
+    /// Similar to `new_extra`, but allows overriding byte offset, character
+    /// offset, and line. This is unsafe, because giving a byte offset too large may result in
     /// undefined behavior, as some methods move back along the fragment
     /// assuming any negative index within the offset is valid.
     pub unsafe fn new_from_raw_offset(
         offset: usize,
+        char_offset: usize,
         line: u32,
         fragment: T,
         extra: X,
     ) -> LocatedSpan<T, X> {
         LocatedSpan {
             offset,
+            char_offset,
             line,
             fragment,
             extra,
@@ -254,6 +262,15 @@ impl<T, X> LocatedSpan<T, X> {
     /// the input of the parser. It starts at offset 0.
     pub fn location_offset(&self) -> usize {
         self.offset
+    }
+
+    /// The character offset represents the position of the fragment in
+    /// Unicode scalar values relatively to the input of the parser.
+    ///
+    /// The value is meaningful for UTF-8 input such as `&str`. It starts at
+    /// offset 0.
+    pub fn location_char_offset(&self) -> usize {
+        self.char_offset
     }
 
     /// The line number of the fragment relatively to the input of the
@@ -272,9 +289,9 @@ impl<T, X> LocatedSpan<T, X> {
     ///
     /// # Example of use
     /// ```
-    /// # extern crate nom_locate;
+    /// # extern crate nom_locate_usv;
     /// # extern crate nom;
-    /// # use nom_locate::LocatedSpan;
+    /// # use nom_locate_usv::LocatedSpan;
     /// use nom::{
     ///   IResult, AsChar, Parser,
     ///   combinator::{recognize, map_res},
@@ -307,6 +324,7 @@ impl<T, X> LocatedSpan<T, X> {
     pub fn map_extra<U, F: FnOnce(X) -> U>(self, f: F) -> LocatedSpan<T, U> {
         LocatedSpan {
             offset: self.offset,
+            char_offset: self.char_offset,
             line: self.line,
             fragment: self.fragment,
             extra: f(self.extra),
@@ -317,9 +335,9 @@ impl<T, X> LocatedSpan<T, X> {
     ///
     /// # Example of use
     /// ```
-    /// # extern crate nom_locate;
+    /// # extern crate nom_locate_usv;
     /// # extern crate nom;
-    /// # use nom_locate::LocatedSpan;
+    /// # use nom_locate_usv::LocatedSpan;
     /// use nom::{
     ///     IResult,
     ///     bytes::complete::{take_till, tag},
@@ -389,9 +407,9 @@ impl<T: AsBytes, X> LocatedSpan<T, X> {
     /// will not include any data from after the LocatedSpan.
     ///
     /// ```
-    /// # extern crate nom_locate;
+    /// # extern crate nom_locate_usv;
     /// # extern crate nom;
-    /// # use nom_locate::LocatedSpan;
+    /// # use nom_locate_usv::LocatedSpan;
     /// # use nom::{Input, FindSubstring};
     /// #
     /// # fn main() {
@@ -423,9 +441,9 @@ impl<T: AsBytes, X> LocatedSpan<T, X> {
     /// # Example of use
     /// ```
     ///
-    /// # extern crate nom_locate;
+    /// # extern crate nom_locate_usv;
     /// # extern crate nom;
-    /// # use nom_locate::LocatedSpan;
+    /// # use nom_locate_usv::LocatedSpan;
     /// # use nom::Input;
     /// #
     /// # fn main() {
@@ -450,9 +468,9 @@ impl<T: AsBytes, X> LocatedSpan<T, X> {
     /// # Example of use
     /// ```
     ///
-    /// # extern crate nom_locate;
+    /// # extern crate nom_locate_usv;
     /// # extern crate nom;
-    /// # use nom_locate::LocatedSpan;
+    /// # use nom_locate_usv::LocatedSpan;
     /// # use nom::{Input, FindSubstring};
     /// #
     /// # fn main() {
@@ -478,9 +496,9 @@ impl<T: AsBytes, X> LocatedSpan<T, X> {
     /// # Example of use
     /// ```
     ///
-    /// # extern crate nom_locate;
+    /// # extern crate nom_locate_usv;
     /// # extern crate nom;
-    /// # use nom_locate::LocatedSpan;
+    /// # use nom_locate_usv::LocatedSpan;
     /// # use nom::{Input, FindSubstring};
     /// #
     /// # fn main() {
@@ -507,6 +525,7 @@ impl<T: AsBytes, X> LocatedSpan<T, X> {
             return Self {
                 line: self.line,
                 offset: self.offset,
+                char_offset: self.char_offset,
                 fragment: next_fragment,
                 extra: self.extra.clone(),
             };
@@ -517,6 +536,7 @@ impl<T: AsBytes, X> LocatedSpan<T, X> {
         let next_offset = self.offset + consumed_len;
 
         let consumed_as_bytes = consumed.as_bytes();
+        let next_char_offset = self.char_offset + num_chars(consumed_as_bytes);
         let iter = Memchr::new(b'\n', consumed_as_bytes);
         let number_of_lines = iter.count() as u32;
         let next_line = self.line + number_of_lines;
@@ -524,6 +544,7 @@ impl<T: AsBytes, X> LocatedSpan<T, X> {
         Self {
             line: next_line,
             offset: next_offset,
+            char_offset: next_char_offset,
             fragment: next_fragment,
             extra: self.extra.clone(),
         }
@@ -533,6 +554,7 @@ impl<T: AsBytes, X> LocatedSpan<T, X> {
 impl<T: Hash, X> Hash for LocatedSpan<T, X> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.offset.hash(state);
+        self.char_offset.hash(state);
         self.line.hash(state);
         self.fragment.hash(state);
     }
@@ -546,7 +568,10 @@ impl<T: AsBytes, X: Default> From<T> for LocatedSpan<T, X> {
 
 impl<T: AsBytes + PartialEq, X> PartialEq for LocatedSpan<T, X> {
     fn eq(&self, other: &Self) -> bool {
-        self.line == other.line && self.offset == other.offset && self.fragment == other.fragment
+        self.line == other.line
+            && self.offset == other.offset
+            && self.char_offset == other.char_offset
+            && self.fragment == other.fragment
     }
 }
 

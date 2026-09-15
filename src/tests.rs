@@ -40,6 +40,7 @@ fn it_should_call_new_for_u8_successfully() {
     let input = &b"foobar"[..];
     let output = BytesSpan {
         offset: 0,
+        char_offset: 0,
         line: 1,
         fragment: input,
         extra: (),
@@ -60,6 +61,7 @@ fn it_should_call_new_for_str_successfully() {
     let input = &"foobar"[..];
     let output = StrSpan {
         offset: 0,
+        char_offset: 0,
         line: 1,
         fragment: input,
         extra: (),
@@ -112,6 +114,7 @@ fn it_should_slice_for_str() {
         str_slice.take_from(1),
         StrSpanEx {
             offset: 1,
+            char_offset: 1,
             line: 1,
             fragment: "oobar",
             extra: "extra",
@@ -121,6 +124,7 @@ fn it_should_slice_for_str() {
         str_slice.take(3).take_from(1),
         StrSpanEx {
             offset: 1,
+            char_offset: 1,
             line: 1,
             fragment: "oo",
             extra: "extra",
@@ -130,6 +134,7 @@ fn it_should_slice_for_str() {
         str_slice.take(3),
         StrSpanEx {
             offset: 0,
+            char_offset: 0,
             line: 1,
             fragment: "foo",
             extra: "extra",
@@ -145,6 +150,7 @@ fn it_should_slice_for_u8() {
         bytes_slice.take_from(1),
         BytesSpanEx {
             offset: 1,
+            char_offset: 1,
             line: 1,
             fragment: b"oobar",
             extra: "extra",
@@ -154,6 +160,7 @@ fn it_should_slice_for_u8() {
         bytes_slice.take(3).take_from(1),
         BytesSpanEx {
             offset: 1,
+            char_offset: 1,
             line: 1,
             fragment: b"oo",
             extra: "extra",
@@ -163,6 +170,7 @@ fn it_should_slice_for_u8() {
         bytes_slice.take(3),
         BytesSpanEx {
             offset: 0,
+            char_offset: 0,
             line: 1,
             fragment: b"foo",
             extra: "extra",
@@ -185,7 +193,10 @@ fn it_should_calculate_columns() {
 #[test]
 fn it_should_calculate_columns_accurately_with_non_ascii_chars() {
     let s = StrSpan::new("メカジキ");
-    assert_eq!(s.take_from(6).get_utf8_column(), 3);
+    let span = s.take_from(6);
+    assert_eq!(span.get_utf8_column(), 3);
+    assert_eq!(span.location_offset(), 6);
+    assert_eq!(span.location_char_offset(), 2);
 }
 
 #[test]
@@ -193,6 +204,7 @@ fn it_should_calculate_columns_accurately_with_non_ascii_chars() {
 fn it_should_panic_when_getting_column_if_offset_is_too_big() {
     let s = StrSpanEx {
         offset: usize::max_value(),
+        char_offset: usize::max_value(),
         fragment: "",
         line: 1,
         extra: "",
@@ -334,6 +346,7 @@ fn it_should_take_chars() {
         s.take(5),
         StrSpanEx {
             offset: 0,
+            char_offset: 0,
             line: 1,
             fragment: "abcde",
             extra: "extra",
@@ -349,12 +362,14 @@ fn it_should_take_split_chars() {
         (
             StrSpanEx {
                 offset: 5,
+                char_offset: 5,
                 line: 1,
                 fragment: "fghij",
                 extra: "extra",
             },
             StrSpanEx {
                 offset: 0,
+                char_offset: 0,
                 line: 1,
                 fragment: "abcde",
                 extra: "extra",
@@ -373,12 +388,14 @@ fn it_should_split_at_position() {
         Ok((
             StrSpanEx {
                 offset: 5,
+                char_offset: 5,
                 line: 1,
                 fragment: "fghij",
                 extra: "extra",
             },
             StrSpanEx {
                 offset: 0,
+                char_offset: 0,
                 line: 1,
                 fragment: "abcde",
                 extra: "extra",

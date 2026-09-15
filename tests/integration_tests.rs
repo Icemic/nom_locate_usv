@@ -1,5 +1,5 @@
 use nom::{error::ErrorKind, error_position, AsBytes, FindSubstring, IResult, Input, Parser};
-use nom_locate::LocatedSpan;
+use nom_locate_usv::LocatedSpan;
 use std::cmp;
 use std::fmt::Debug;
 

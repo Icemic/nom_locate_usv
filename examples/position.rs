@@ -1,9 +1,9 @@
 extern crate nom;
-extern crate nom_locate;
+extern crate nom_locate_usv;
 
 use nom::bytes::complete::{tag, take_until};
 use nom::IResult;
-use nom_locate::{position, LocatedSpan};
+use nom_locate_usv::{position, LocatedSpan};
 
 type Span<'a> = LocatedSpan<&'a str>;
 
@@ -35,7 +35,8 @@ fn main() {
     let position = output.unwrap().1.position;
     assert_eq!(position, unsafe {
         Span::new_from_raw_offset(
-            14, // offset
+            14, // byte offset
+            14, // char offset
             2,  // line
             "", // fragment
             (), // extra
