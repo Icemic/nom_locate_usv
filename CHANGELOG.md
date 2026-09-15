@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v5.1.0
+
+Introduce `char_offset` to `LocatedSpan`, which returns the number of Unicode scalar values from the start of the input to the current position. This is useful for applications that need to track character positions in addition to byte offsets.
+
 ## v5.0.0
 
 Breaking change:

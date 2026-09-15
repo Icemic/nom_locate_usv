@@ -16,7 +16,7 @@ name = "nom_locate_usv"
 readme = "README.md"
 repository = "https://github.com/Icemic/nom_locate_usv"
 rust-version = "1.65.0"
-version = "5.0.0"
+version = "5.1.0"
 
 [badges.travis-ci]
 repository = "Icemic/nom_locate_usv"
